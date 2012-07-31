@@ -1,0 +1,23 @@
+$ cat .gitignore
+
+# Compiled source #
+###################
+*.apk
+*.ipa
+*.swf
+
+# Eclipse project files #
+#########################
+.project
+.settings
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
