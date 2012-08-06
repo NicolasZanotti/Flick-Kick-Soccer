@@ -1,5 +1,6 @@
 ﻿package
 {
+	import flash.display.StageQuality;
 	import soccer.model.ApplicationState;
 	import soccer.model.Locator;
 
@@ -43,8 +44,10 @@
 			bootStrapper = new Bootstrapper(this, 4).withLoaderAnimation(loaderAnimation).withPlayerVerionError(11, errorMessageFPVersion);
 
 			// Configure stage
-			stage.scaleMode = StageScaleMode.NO_SCALE;
 			stage.align = StageAlign.TOP_LEFT;
+			stage.scaleMode = StageScaleMode.NO_SCALE;
+			stage.showDefaultContextMenu = false;
+			stage.quality = StageQuality.HIGH;
 
 			// Add listeners
 			ct.events.add(bootStrapper, Bootstrapper.CLASSES_FRAME_COMPLETE, onClassesFrameComplete);

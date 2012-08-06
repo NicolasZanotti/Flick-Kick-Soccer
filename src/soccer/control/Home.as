@@ -1,9 +1,13 @@
 package soccer.control
 {
 	import away3d.containers.View3D;
+	import away3d.debug.AwayStats;
 	import away3d.entities.Mesh;
-	import away3d.materials.ColorMaterial;
+	import away3d.materials.TextureMaterial;
 	import away3d.primitives.PlaneGeometry;
+	import away3d.utils.Cast;
+
+	import awayphysics.dynamics.AWPDynamicsWorld;
 
 	import stoletheshow.control.Controllable;
 
@@ -17,10 +21,10 @@ package soccer.control
 	public class Home extends Sprite implements Controllable
 	{
 		public var ct:LinkedController;
-		// engine variables
 		private var _view:View3D;
-		// scene objects
 		private var _plane:Mesh;
+		private var _physicsWorld:AWPDynamicsWorld;
+
 
 		public function Home()
 		{
@@ -29,10 +33,11 @@ package soccer.control
 
 		public function init():void
 		{
-			trace("init");
-
+			this.addChild(new AwayStats(_view));
+			
 			// setup the view
 			_view = new View3D();
+			_view.antiAlias = 0;
 
 			addChild(_view);
 
@@ -42,8 +47,17 @@ package soccer.control
 			_view.camera.lookAt(new Vector3D());
 
 			// setup the scene
-			_plane = new Mesh(new PlaneGeometry(700, 700), new ColorMaterial());
+			var material:TextureMaterial = new TextureMaterial(Cast.bitmapTexture("grass.png"), true, true);
+			var geometry:PlaneGeometry = new PlaneGeometry(1000, 1000, 100, 100);
+
+			_plane = new Mesh(geometry, material);
+			_plane.geometry.scaleUV(4,4);
 			_view.scene.addChild(_plane);
+			
+			// init the physics world
+			_physicsWorld = AWPDynamicsWorld.getInstance();
+			_physicsWorld.initWithDbvtBroadphase();
+			
 
 			// setup the render loop
 			addEventListener(Event.ENTER_FRAME, tick);
@@ -51,11 +65,12 @@ package soccer.control
 			onResize();
 		}
 
+		/* ------------------------------------------------------------------------------- */
+		/*  Event handlers */
+		/* ------------------------------------------------------------------------------- */
 		private function tick(event:Event):void
 		{
 			event.stopPropagation();
-			
-			_plane.rotationY += 1;
 
 			_view.render();
 		}
@@ -67,6 +82,7 @@ package soccer.control
 		{
 			_view.width = stage.stageWidth;
 			_view.height = stage.stageHeight;
+			if (event) tick(event);
 		}
 
 		public function dispose():void
