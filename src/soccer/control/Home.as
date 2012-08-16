@@ -1,7 +1,5 @@
 package soccer.control
 {
-	import soccer.model.HomeState;
-
 	import away3d.containers.View3D;
 	import away3d.debug.AwayStats;
 	import away3d.events.MouseEvent3D;
@@ -13,14 +11,18 @@ package soccer.control
 	import jiglib.plugin.away3d4.Away3D4Mesh;
 	import jiglib.plugin.away3d4.Away3D4Physics;
 
-	import soccer.away3d.Object3DModifier;
+	import soccer.model.HomeState;
+	import soccer.socket.FlashSocket;
+	import soccer.socket.FlashSocketEvent;
 
 	import stoletheshow.control.Controllable;
 
 	import flash.display.Sprite;
 	import flash.events.Event;
+	import flash.events.KeyboardEvent;
 	import flash.events.MouseEvent;
 	import flash.geom.Vector3D;
+	import flash.ui.Keyboard;
 
 	/**
 	 * TODO: remove after certain time
@@ -34,6 +36,7 @@ package soccer.control
 		protected var physics:Away3D4Physics;
 		protected var ground:RigidBody;
 		protected var st:HomeState;
+		private var socket:*;
 
 		public function Home()
 		{
@@ -44,14 +47,28 @@ package soccer.control
 		{
 			st = new HomeState();
 
-			setup3DView();
-			setup3DPhysicEngine();
+			initSocketConnection();
+			init3DView();
+			initPhysics();
 			addGround();
 
+			ct.events.add(stage, KeyboardEvent.KEY_DOWN, onKeyDown);
 			ct.events.add(this, MouseEvent.CLICK, onClick);
 		}
 
-		private function setup3DView():void
+		private function initSocketConnection():void
+		{
+			trace("initSocketConnection");
+
+			socket = new FlashSocket("staging.mattenbach.ch:8126");
+			socket.addEventListener(FlashSocketEvent.CONNECT, onConnect);
+			socket.addEventListener(FlashSocketEvent.MESSAGE, onMessage);
+			socket.addEventListener(FlashSocketEvent.IO_ERROR, onError);
+			socket.addEventListener(FlashSocketEvent.SECURITY_ERROR, onError);
+			socket.addEventListener("kicked", onKicked);
+		}
+
+		private function init3DView():void
 		{
 			view = new View3D();
 			view.antiAlias = 0;
@@ -65,9 +82,9 @@ package soccer.control
 			view.camera.rotationY = 0;
 			view.camera.rotationZ = 0;
 
-			view.camera.name = "container";
-			var modifier:Object3DModifier = new Object3DModifier(view.camera);
-			addChild(modifier);
+//			view.camera.name = "container";
+//			var modifier:Object3DModifier = new Object3DModifier(view.camera);
+//			addChild(modifier);
 
 			// setup the render loop
 			addEventListener(Event.ENTER_FRAME, tick);
@@ -75,7 +92,7 @@ package soccer.control
 			onResize();
 		}
 
-		private function setup3DPhysicEngine():void
+		private function initPhysics():void
 		{
 			JConfig.solverType = "FAST";
 			physics = new Away3D4Physics(view, 8);
@@ -91,7 +108,7 @@ package soccer.control
 			ground.friction = 0.9;
 		}
 
-		private function spawnNewSphere(evt:Event = null):RigidBody
+		private function spawnNewSphere():RigidBody
 		{
 			var radius:Number = 12;
 			var ballMaterial:TextureMaterial = new TextureMaterial(Cast.bitmapTexture("ball.png"), true, false);
@@ -110,6 +127,30 @@ package soccer.control
 			st.rigidBodiesExistenceFrames.push(500);
 
 			return nextSphere;
+		}
+
+		private function kick(name:String, angle:Number, distance:Number):void
+		{
+			// the axis in the browser version is the other way around
+			angle = -angle;			
+			
+			
+			// only kick the ball if the angle is in the direction of the camera.
+			if (angle <= st.LEFT && angle >= st.RIGHT)
+			{
+				var sphere:RigidBody = spawnNewSphere();
+				sphere.x = view.camera.x;
+				sphere.y = 24;
+				sphere.z = view.camera.z;
+
+				st.linearVelocity.x = (st.STRAIGHT - angle) / st.INCREMENT;
+				
+				if (distance > st.MAX_DISTANCE) distance = st.MAX_DISTANCE;
+				st.linearVelocity.y = distance * st.DISTANCE_MULTIPLIER_Y;
+				st.linearVelocity.z = distance * st.DISTANCE_MULTIPLIER_Z;
+				
+				sphere.setLineVelocity(st.linearVelocity.clone());
+			}
 		}
 
 		/* ------------------------------------------------------------------------------- */
@@ -134,29 +175,76 @@ package soccer.control
 				{
 					view.scene.removeChild((st.currentBody.skin as Away3D4Mesh).mesh);
 					physics.removeBody(st.currentBody);
-					
+
 					st.rigidBodies[i] = null;
 					st.rigidBodiesExistenceFrames[i] = -1;
 				}
 			}
-			
+
 			physics.step();
 			view.render();
 		}
 
 		private function onClick(event:MouseEvent):void
 		{
-			var sphere:RigidBody = spawnNewSphere();
-			sphere.x = view.camera.x;
-			sphere.y = 24;
-			sphere.z = view.camera.z;
-			sphere.setLineVelocity(new Vector3D(0, 40, 50));
+			// var sphere:RigidBody = spawnNewSphere();
+			// sphere.x = view.camera.x;
+			// sphere.y = 24;
+			// sphere.z = view.camera.z;
+			// sphere.setLineVelocity(new Vector3D(0, 40, 50));
+		}
+
+		private function onKeyDown(event:KeyboardEvent):void
+		{
+			if (event.keyCode == Keyboard.SPACE)
+			{
+				kick("Local", -st.STRAIGHT, 250);
+			}
 		}
 
 		private function onMouseClickSphere(mouseEvent:MouseEvent3D):void
 		{
 			var rigidBodyClick:RigidBody = st.rigidBodies[mouseEvent.target.extra.indexrigid];
 			rigidBodyClick.setLineVelocity(new Vector3D(-50 + Math.random() * 100, -50 + Math.random() * 100, -50 + Math.random() * 100));
+		}
+
+		/* ------------------------------------------------------------------------------- */
+		/*  Socket event handlers */
+		/* ------------------------------------------------------------------------------- */
+		private function onJoinComplete(name:*):void
+		{
+			trace("onJoinComplete: " + name);
+			trace("listeneing for kicked");
+		}
+
+		private function onKicked(event:FlashSocketEvent):void
+		{
+			var name:String = event.data[0];
+			var angle:Number = event.data[1];
+			var distance:Number = event.data[2];
+			
+
+			trace("onKicked name: " + name);
+			trace("onKicked angle: " + angle);
+			trace("onKicked distance: " + distance);
+			
+			kick(name, angle, distance);
+		}
+
+		private function onConnect(event:FlashSocketEvent):void
+		{
+			trace("onConnect");
+			socket.emit('join', 'Goal', onJoinComplete);
+		}
+
+		private function onError(event:FlashSocketEvent):void
+		{
+			trace("onError: " + event.data);
+		}
+
+		private function onMessage(event:FlashSocketEvent):void
+		{
+			trace('onMessage: ' + event.data);
 		}
 
 		/**
