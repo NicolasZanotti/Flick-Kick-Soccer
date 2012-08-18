@@ -1,6 +1,7 @@
 package soccer.model
 {
 	import flash.geom.Vector3D;
+
 	import jiglib.physics.RigidBody;
 
 	/**
@@ -16,13 +17,13 @@ package soccer.model
 		public const INCREMENT:Number = STRAIGHT / MAX_FORCE;
 		public const DISTANCE_MULTIPLIER_Y:Number = .12;
 		public const DISTANCE_MULTIPLIER_Z:Number = .16;
-		
+		public const RIGID_BODY_LIFETIME:int = 400;
+		public const HITTEST_MARGIN:int = 25;
 		public var currentBody:RigidBody;
-		public var currentLifetime:int;
+		public var currentExtraData:ExtraSphereDataVO;
 		public var rigidBodies:Vector.<RigidBody> = new Vector.<RigidBody>;
-		public var rigidBodiesExistenceFrames:Array = [];
-		
 		public var linearVelocity:Vector3D = new Vector3D();
+		public var points:uint;
 		
 	}
 }

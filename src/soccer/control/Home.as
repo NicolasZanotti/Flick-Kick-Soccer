@@ -1,9 +1,11 @@
 package soccer.control
 {
 	import away3d.containers.View3D;
-	import away3d.debug.AwayStats;
+	import away3d.entities.Mesh;
 	import away3d.events.MouseEvent3D;
+	import away3d.materials.ColorMaterial;
 	import away3d.materials.TextureMaterial;
+	import away3d.primitives.PlaneGeometry;
 	import away3d.utils.Cast;
 
 	import jiglib.cof.JConfig;
@@ -11,6 +13,7 @@ package soccer.control
 	import jiglib.plugin.away3d4.Away3D4Mesh;
 	import jiglib.plugin.away3d4.Away3D4Physics;
 
+	import soccer.model.ExtraSphereDataVO;
 	import soccer.model.HomeState;
 	import soccer.socket.FlashSocket;
 	import soccer.socket.FlashSocketEvent;
@@ -20,8 +23,8 @@ package soccer.control
 	import flash.display.Sprite;
 	import flash.events.Event;
 	import flash.events.KeyboardEvent;
-	import flash.events.MouseEvent;
 	import flash.geom.Vector3D;
+	import flash.text.TextField;
 	import flash.ui.Keyboard;
 
 	/**
@@ -32,12 +35,20 @@ package soccer.control
 	public class Home extends Sprite implements Controllable
 	{
 		public var ct:LinkedController;
-		protected var view:View3D;
-		protected var physics:Away3D4Physics;
-		protected var ground:RigidBody;
-		protected var st:HomeState;
-		private var socket:*;
+		public var tfPoints:TextField;
+		private var view:View3D;
+		private var physics:Away3D4Physics;
+		private var sky:Mesh;
+		private var ground:RigidBody, goalPostLeft:RigidBody, goalPostRight:RigidBody, goalPostTop:RigidBody, banner1:RigidBody;
+		private var st:HomeState;
+		private var socket:FlashSocket;
+		CONFIG::WEB
+		{
+			import away3d.materials.lightpickers.StaticLightPicker;
 
+			private var lightPicker:StaticLightPicker;
+		
+		}
 		public function Home()
 		{
 			ct = new LinkedController(this);
@@ -50,46 +61,83 @@ package soccer.control
 			initSocketConnection();
 			init3DView();
 			initPhysics();
+			addLights();
 			addGround();
+			addGoal();
+			addSky();
+			addBanners();
 
-			ct.events.add(stage, KeyboardEvent.KEY_DOWN, onKeyDown);
-			ct.events.add(this, MouseEvent.CLICK, onClick);
+			CONFIG::DEBUG
+			{
+				ct.events.add(stage, KeyboardEvent.KEY_DOWN, onKeyDown);
+			}
 		}
 
 		private function initSocketConnection():void
 		{
 			trace("initSocketConnection");
 
-			socket = new FlashSocket("staging.mattenbach.ch:8126");
+			socket = createSocket();
 			socket.addEventListener(FlashSocketEvent.CONNECT, onConnect);
 			socket.addEventListener(FlashSocketEvent.MESSAGE, onMessage);
 			socket.addEventListener(FlashSocketEvent.IO_ERROR, onError);
 			socket.addEventListener(FlashSocketEvent.SECURITY_ERROR, onError);
 			socket.addEventListener("kicked", onKicked);
+
+			CONFIG::MOBILE
+			{
+				import flash.desktop.NativeApplication;
+
+				ct.events.add(NativeApplication.nativeApplication, Event.ACTIVATE, onActivate);
+				ct.events.add(NativeApplication.nativeApplication, Event.DEACTIVATE, onDeactivate);
+			}
+		}
+
+		private function createSocket():FlashSocket
+		{
+			return new FlashSocket("staging.mattenbach.ch:8126");
+		}
+
+		private function onDeactivate(event:Event):void
+		{
+			if (socket && socket.connected) socket.send("disconnect");
+		}
+
+		private function onActivate(event:Event):void
+		{
+			if (!socket.connecting || !socket.connected) socket = createSocket();
 		}
 
 		private function init3DView():void
 		{
 			view = new View3D();
-			view.antiAlias = 0;
+			view.antiAlias = 1;
 			addChild(view);
-			this.addChild(new AwayStats(view));
 
-			view.camera.x = -70;
-			view.camera.y = 180;
+			CONFIG::DEBUG
+			{
+				import away3d.debug.AwayStats;
+
+				this.addChild(new AwayStats(view));
+			}
+
+			view.camera.x = 0;
+			view.camera.y = 120;
 			view.camera.z = -1550;
-			view.camera.rotationX = 20;
+			view.camera.rotationX = 15;
 			view.camera.rotationY = 0;
 			view.camera.rotationZ = 0;
 
-//			view.camera.name = "container";
-//			var modifier:Object3DModifier = new Object3DModifier(view.camera);
-//			addChild(modifier);
+			CONFIG::DEBUG
+			{
+				 import soccer.away3d.Object3DModifier;
+				
+				 var modifier:Object3DModifier = new Object3DModifier(view.camera, 'view.camera');
+				 addChild(modifier);
+			}
 
 			// setup the render loop
 			addEventListener(Event.ENTER_FRAME, tick);
-			stage.addEventListener(Event.RESIZE, onResize);
-			onResize();
 		}
 
 		private function initPhysics():void
@@ -98,57 +146,171 @@ package soccer.control
 			physics = new Away3D4Physics(view, 8);
 		}
 
+		private function addLights():void
+		{
+			CONFIG::WEB
+			{
+				import away3d.lights.DirectionalLight;
+
+				var sun:DirectionalLight = new DirectionalLight();
+
+				sun.color = 0xfffed4;
+				sun.ambient = 0.4;
+				sun.diffuse = 0.8;
+
+				sun.x = 0;
+				sun.y = 1000;
+				sun.z = 0;
+				sun.rotationX = 135;
+				sun.rotationY = 180;
+				sun.rotationZ = 0;
+
+				view.scene.addChild(sun);
+
+				lightPicker = new StaticLightPicker([sun]);
+			}
+		}
+
 		private function addGround():void
 		{
-			var groundMaterial:TextureMaterial = new TextureMaterial(Cast.bitmapTexture("grass.png"), true, true);
+			var material:TextureMaterial = new TextureMaterial(Cast.bitmapTexture("grass.png"), true, true);
+			CONFIG::WEB
+			{
+				material.lightPicker = lightPicker;
+			}
 
-			ground = physics.createGround(groundMaterial, 5000, 3000, 100, 100, true, 0);
-			(ground.skin as Away3D4Mesh).mesh.geometry.scaleUV(20, 12);
+			ground = physics.createGround(material, 5000, 3000, 100, 100, true, 0);
+			physics.getMesh(ground).geometry.scaleUV(5000 / 200, 3000 / 200);
 			ground.movable = false;
 			ground.friction = 0.9;
 		}
 
-		private function spawnNewSphere():RigidBody
+		private function addSky():void
+		{
+			var material:TextureMaterial = new TextureMaterial(Cast.bitmapTexture("sky.png"), false, false);
+
+			sky = new Mesh(new PlaneGeometry(4600, 4600), material);
+			sky.x = 0;
+			sky.y = 140;
+			sky.z = 1520;
+			sky.rotationX = -80;
+			sky.rotationY = 0;
+			sky.rotationZ = 0;
+
+			view.scene.addChild(sky);
+		}
+
+		private function addGoal():void
+		{
+			var material:ColorMaterial = new ColorMaterial(0xFFFFFF);
+			CONFIG::WEB
+			{
+				material.lightPicker = lightPicker;
+			}
+
+			var distanceBetweenPosts:Number = 600;
+			var postThickness:Number = 20;
+			var postHeight:Number = 200;
+
+			// Left
+			goalPostLeft = physics.createCube(material, postThickness, postHeight, postThickness);
+			goalPostLeft.movable = false;
+			goalPostLeft.x = -(distanceBetweenPosts / 2);
+			goalPostLeft.y = (postHeight / 2);
+			goalPostLeft.z = -460;
+
+			physics.getMesh(goalPostLeft).geometry.scaleUV(1, 10);
+
+			// Right
+			goalPostRight = physics.createCube(material, postThickness, postHeight, postThickness);
+			goalPostRight.movable = false;
+			goalPostRight.x = distanceBetweenPosts / 2;
+			goalPostRight.y = (postHeight / 2) + 1;
+			goalPostRight.z = -460;
+
+			physics.getMesh(goalPostRight).geometry.scaleUV(1, 10);
+
+			// Top
+			goalPostTop = physics.createCube(material, distanceBetweenPosts + postThickness, postThickness, postThickness);
+			goalPostTop.movable = false;
+			goalPostTop.x = 0;
+			goalPostTop.y = postHeight;
+			goalPostTop.z = -460;
+
+			physics.getMesh(goalPostTop).geometry.scaleUV(10, 1);
+		}
+
+		private function addBanners():void
+		{
+			var material:TextureMaterial = new TextureMaterial(Cast.bitmapTexture("banner1.png"), true, false);
+
+			// var cubeGeometry:CubeGeometry = new CubeGeometry(512, 128, 20, 20, 10, 10, false);
+			// tempCubeMesh = new Mesh(cubeGeometry, material);
+			//
+			// tempCubeMesh.x = 740;
+			// tempCubeMesh.y = 70;
+			// tempCubeMesh.z = -130;
+			// tempCubeMesh.rotationX = 10;
+			// tempCubeMesh.rotationY = 10;
+			// tempCubeMesh.rotationZ = 0;
+			//
+			// view.scene.addChild(tempCubeMesh);
+
+			banner1 = physics.createCube(material, 512, 128, 20, 20, 10, 10, false);
+			banner1.movable = false;
+			banner1.mass = 20;
+			banner1.friction = 1;
+			banner1.x = 740;
+			banner1.y = 128 * 0.5;
+			banner1.z = -130;
+			banner1.rotationX = 0;
+			banner1.rotationY = 10;
+			banner1.rotationZ = 0;
+		}
+
+		private function addSphere():RigidBody
 		{
 			var radius:Number = 12;
-			var ballMaterial:TextureMaterial = new TextureMaterial(Cast.bitmapTexture("ball.png"), true, false);
+			var material:TextureMaterial = new TextureMaterial(Cast.bitmapTexture("ball.png"), true, false);
+			CONFIG::WEB
+			{
+				material.lightPicker = lightPicker;
+			}
 
-			var nextSphere:RigidBody = physics.createSphere(ballMaterial, radius, 15, 15, false);
-			nextSphere.friction = 1;
-			nextSphere.restitution = 1;
+			var sphere:RigidBody = physics.createSphere(material, radius, 15, 15, false);
+			sphere.friction = 1;
+			sphere.restitution = 1;
 
 			// enable mouseevents on mesh
-			var meshSphere:Away3D4Mesh = nextSphere.skin as Away3D4Mesh;
-			meshSphere.mesh.mouseEnabled = true;
-			meshSphere.mesh.extra = {indexrigid:st.rigidBodies.length};
-			meshSphere.mesh.addEventListener(MouseEvent3D.MOUSE_DOWN, onMouseClickSphere);
+			var sphereMesh:Away3D4Mesh = sphere.skin as Away3D4Mesh;
+			sphereMesh.mesh.mouseEnabled = true;
+			sphereMesh.mesh.extra = new ExtraSphereDataVO(st.rigidBodies.length, false, st.RIGID_BODY_LIFETIME);
+			sphereMesh.mesh.addEventListener(MouseEvent3D.MOUSE_DOWN, onMouseClickSphere);
 
-			st.rigidBodies.push(nextSphere);
-			st.rigidBodiesExistenceFrames.push(500);
+			st.rigidBodies.push(sphere);
 
-			return nextSphere;
+			return sphere;
 		}
 
 		private function kick(name:String, angle:Number, distance:Number):void
 		{
 			// the axis in the browser version is the other way around
-			angle = -angle;			
-			
-			
+			angle = -angle;
+
 			// only kick the ball if the angle is in the direction of the camera.
 			if (angle <= st.LEFT && angle >= st.RIGHT)
 			{
-				var sphere:RigidBody = spawnNewSphere();
+				var sphere:RigidBody = addSphere();
 				sphere.x = view.camera.x;
 				sphere.y = 24;
 				sphere.z = view.camera.z;
 
 				st.linearVelocity.x = (st.STRAIGHT - angle) / st.INCREMENT;
-				
+
 				if (distance > st.MAX_DISTANCE) distance = st.MAX_DISTANCE;
 				st.linearVelocity.y = distance * st.DISTANCE_MULTIPLIER_Y;
 				st.linearVelocity.z = distance * st.DISTANCE_MULTIPLIER_Z;
-				
+
 				sphere.setLineVelocity(st.linearVelocity.clone());
 			}
 		}
@@ -161,23 +323,37 @@ package soccer.control
 			for (var i:int = 0, n:int = st.rigidBodies.length; i < n; i++)
 			{
 				st.currentBody = st.rigidBodies[i];
-				st.currentLifetime = st.rigidBodiesExistenceFrames[i];
+				st.currentExtraData = physics.getMesh(st.currentBody).extra as ExtraSphereDataVO;
+				// st.currentLifetime = physics.getMesh(st.currentBody).extra.lifeTime;
 
-				if (st.currentLifetime > 0)
+				if (st.currentExtraData.lifeTime > 0)
 				{
-					st.rigidBodiesExistenceFrames[i] -= 1;
+					st.currentExtraData.lifeTime -= 1;
+
+					// check if a goal was made
+
+					if (!st.currentExtraData.countedAsGoal)
+					{
+						if ((st.currentBody.z > goalPostTop.z && st.currentBody.z < (goalPostTop.z + st.HITTEST_MARGIN)) && st.currentBody.y < (goalPostTop.y + st.HITTEST_MARGIN) && (st.currentBody.x > goalPostLeft.x && st.currentBody.x < goalPostRight.x))
+						{
+							st.currentExtraData.countedAsGoal = true;
+							st.points += 1;
+							tfPoints.text = st.points.toString() + (st.points == 1 ? " Punkt" : " Punkte");
+						}
+					}
 
 					// temporary hack for dampening the ball movement
 					if (st.currentBody.currentState.linVelocity.x > 0) st.currentBody.currentState.linVelocity.x -= 0.1
 					if (st.currentBody.currentState.linVelocity.z > 0) st.currentBody.currentState.linVelocity.z -= 0.1
 				}
-				else if (st.currentLifetime == 0)
+				else if (st.currentExtraData.lifeTime == 0)
 				{
-					view.scene.removeChild((st.currentBody.skin as Away3D4Mesh).mesh);
 					physics.removeBody(st.currentBody);
+					view.scene.removeChild(physics.getMesh(st.currentBody));
 
-					st.rigidBodies[i] = null;
-					st.rigidBodiesExistenceFrames[i] = -1;
+					st.rigidBodies.splice(i, 1);
+
+					n = st.rigidBodies.length;
 				}
 			}
 
@@ -185,20 +361,13 @@ package soccer.control
 			view.render();
 		}
 
-		private function onClick(event:MouseEvent):void
-		{
-			// var sphere:RigidBody = spawnNewSphere();
-			// sphere.x = view.camera.x;
-			// sphere.y = 24;
-			// sphere.z = view.camera.z;
-			// sphere.setLineVelocity(new Vector3D(0, 40, 50));
-		}
-
 		private function onKeyDown(event:KeyboardEvent):void
 		{
 			if (event.keyCode == Keyboard.SPACE)
 			{
-				kick("Local", -st.STRAIGHT, 250);
+				kick("Local", -0.8, 600);
+
+				// kick("Local", -st.STRAIGHT, 595);
 			}
 		}
 
@@ -222,12 +391,11 @@ package soccer.control
 			var name:String = event.data[0];
 			var angle:Number = event.data[1];
 			var distance:Number = event.data[2];
-			
 
 			trace("onKicked name: " + name);
 			trace("onKicked angle: " + angle);
 			trace("onKicked distance: " + distance);
-			
+
 			kick(name, angle, distance);
 		}
 
@@ -240,21 +408,12 @@ package soccer.control
 		private function onError(event:FlashSocketEvent):void
 		{
 			trace("onError: " + event.data);
+			tfPoints.text = "No connection";
 		}
 
 		private function onMessage(event:FlashSocketEvent):void
 		{
 			trace('onMessage: ' + event.data);
-		}
-
-		/**
-		 * stage listener for resize events
-		 */
-		private function onResize(event:Event = null):void
-		{
-			view.width = stage.stageWidth;
-			view.height = stage.stageHeight;
-			if (event) tick(event);
 		}
 
 		public function dispose():void
