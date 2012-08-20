@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="utf-8" />
+	<title>Flick Kick Soccer</title>
+	<meta name="author" content="Nicolas Zanotti" />
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<script src="/javascripts/jquery-1.7.2.min.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="/javascripts/easeljs-NEXT.min.js"></script>
+	<script src="/javascripts/preloadjs-0.1.0.min.js"></script>
+	<script src="/javascripts/EasePack.min.js"></script>
+	<script src="/javascripts/TweenLite.min.js"></script>
+	<script src="/javascripts/game.js"></script>
+	<style>
+	html, body {
+		margin:0;
+		height:100%;
+	}
+
+	#game {
+		position: absolute;
+	}
+	</style>
+</head>
+<body onload="init()">
+	<canvas id="game" width="800" height="600"></canvas>
+</body>
+</html>

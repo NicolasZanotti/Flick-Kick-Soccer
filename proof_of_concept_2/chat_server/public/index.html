@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>Chat</title>
+	<meta name="author" content="Nicolas Zanotti" />
+	<meta name="viewport" content="width=device-width; initial-scale=1.0" />
+	<script src="/javascripts/jquery-1.7.2.min.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="/javascripts/chat.js"></script>
+	<link rel="stylesheet" href="/stylesheets/chat.css">
+</head>
+<body>
+
+	<div class="chat-module">
+		<textarea class="chat-log"></textarea>
+		<div>
+			<input class="chat-message" type="text">
+			<button class="chat-submit">Send message</button>
+		</div>
+		<p>Current users:</p>
+		<ul class="chat-users"></ul>
+	</div>
+
+	<div class="login-module">
+		<input class="login-name" type="text">
+		<button class="login-submit">Login</button>
+	</div>
+	
+</body>
+</html>

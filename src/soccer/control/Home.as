@@ -28,8 +28,6 @@ package soccer.control
 	import flash.ui.Keyboard;
 
 	/**
-	 * TODO: remove after certain time
-	 * 
 	 * @author Nicolas Zanotti
 	 */
 	public class Home extends Sprite implements Controllable
@@ -130,14 +128,14 @@ package soccer.control
 
 			CONFIG::DEBUG
 			{
-				 import soccer.away3d.Object3DModifier;
-				
-				 var modifier:Object3DModifier = new Object3DModifier(view.camera, 'view.camera');
-				 addChild(modifier);
+				import soccer.away3d.Object3DModifier;
+
+				var modifier:Object3DModifier = new Object3DModifier(view.camera, 'view.camera');
+				addChild(modifier);
 			}
 
 			// setup the render loop
-			addEventListener(Event.ENTER_FRAME, tick);
+			ct.events.add(this, Event.ENTER_FRAME, tick);
 		}
 
 		private function initPhysics():void
@@ -244,18 +242,6 @@ package soccer.control
 		{
 			var material:TextureMaterial = new TextureMaterial(Cast.bitmapTexture("banner1.png"), true, false);
 
-			// var cubeGeometry:CubeGeometry = new CubeGeometry(512, 128, 20, 20, 10, 10, false);
-			// tempCubeMesh = new Mesh(cubeGeometry, material);
-			//
-			// tempCubeMesh.x = 740;
-			// tempCubeMesh.y = 70;
-			// tempCubeMesh.z = -130;
-			// tempCubeMesh.rotationX = 10;
-			// tempCubeMesh.rotationY = 10;
-			// tempCubeMesh.rotationZ = 0;
-			//
-			// view.scene.addChild(tempCubeMesh);
-
 			banner1 = physics.createCube(material, 512, 128, 20, 20, 10, 10, false);
 			banner1.movable = false;
 			banner1.mass = 20;
@@ -324,14 +310,12 @@ package soccer.control
 			{
 				st.currentBody = st.rigidBodies[i];
 				st.currentExtraData = physics.getMesh(st.currentBody).extra as ExtraSphereDataVO;
-				// st.currentLifetime = physics.getMesh(st.currentBody).extra.lifeTime;
 
 				if (st.currentExtraData.lifeTime > 0)
 				{
 					st.currentExtraData.lifeTime -= 1;
 
 					// check if a goal was made
-
 					if (!st.currentExtraData.countedAsGoal)
 					{
 						if ((st.currentBody.z > goalPostTop.z && st.currentBody.z < (goalPostTop.z + st.HITTEST_MARGIN)) && st.currentBody.y < (goalPostTop.y + st.HITTEST_MARGIN) && (st.currentBody.x > goalPostLeft.x && st.currentBody.x < goalPostRight.x))
@@ -365,9 +349,7 @@ package soccer.control
 		{
 			if (event.keyCode == Keyboard.SPACE)
 			{
-				kick("Local", -0.8, 600);
-
-				// kick("Local", -st.STRAIGHT, 595);
+				kick("Local", -st.STRAIGHT, 595);
 			}
 		}
 

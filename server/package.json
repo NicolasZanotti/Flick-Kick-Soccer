@@ -1,0 +1,9 @@
+{
+     "name": "Flick Kick Soccer",
+     "description": "Game using socket.io",
+     "version": "0.0.1",
+     "dependencies": {
+        "express": "2.5.11",
+        "socket.io": "0.9.6"
+     }
+}
