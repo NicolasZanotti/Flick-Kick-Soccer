@@ -40,7 +40,7 @@ package soccer.control
 		private var ground:RigidBody, goalPostLeft:RigidBody, goalPostRight:RigidBody, goalPostTop:RigidBody, banner1:RigidBody;
 		private var st:HomeState;
 		private var socket:FlashSocket;
-		CONFIG::WEB
+		CONFIG::HIGH_QUALITY_3D
 		{
 			import away3d.materials.lightpickers.StaticLightPicker;
 
@@ -65,7 +65,9 @@ package soccer.control
 			addSky();
 			addBanners();
 
-			CONFIG::DEBUG
+			tfPoints.x = stage.stageWidth - (tfPoints.width + 20);
+
+			CONFIG::DESKTOP
 			{
 				ct.events.add(stage, KeyboardEvent.KEY_DOWN, onKeyDown);
 			}
@@ -109,8 +111,12 @@ package soccer.control
 		private function init3DView():void
 		{
 			view = new View3D();
-			view.antiAlias = 1;
 			addChild(view);
+
+			CONFIG::HIGH_QUALITY_3D
+			{
+				view.antiAlias = 4;
+			}
 
 			CONFIG::DEBUG
 			{
@@ -118,6 +124,8 @@ package soccer.control
 
 				this.addChild(new AwayStats(view));
 			}
+
+			trace('view.antiAlias: ' + (view.antiAlias));
 
 			view.camera.x = 0;
 			view.camera.y = 120;
@@ -146,7 +154,7 @@ package soccer.control
 
 		private function addLights():void
 		{
-			CONFIG::WEB
+			CONFIG::HIGH_QUALITY_3D
 			{
 				import away3d.lights.DirectionalLight;
 
@@ -172,22 +180,34 @@ package soccer.control
 		private function addGround():void
 		{
 			var material:TextureMaterial = new TextureMaterial(Cast.bitmapTexture("grass.png"), true, true);
-			CONFIG::WEB
+			var segments:uint = 100;
+			var groundWidth:int = 5000;
+
+			CONFIG::HIGH_QUALITY_3D
 			{
 				material.lightPicker = lightPicker;
+				segments = 200;
+				groundWidth = 6040;
 			}
 
-			ground = physics.createGround(material, 5000, 3000, 100, 100, true, 0);
+			ground = physics.createGround(material, groundWidth, 3000, 100, 100, true, 0);
 			physics.getMesh(ground).geometry.scaleUV(5000 / 200, 3000 / 200);
 			ground.movable = false;
+			ground.mass = 100;
 			ground.friction = 0.9;
 		}
 
 		private function addSky():void
 		{
 			var material:TextureMaterial = new TextureMaterial(Cast.bitmapTexture("sky.png"), false, false);
+			var widthAndHeight:Number = 4600;
 
-			sky = new Mesh(new PlaneGeometry(4600, 4600), material);
+			CONFIG::DESKTOP
+			{
+				widthAndHeight = 6200;
+			}
+
+			sky = new Mesh(new PlaneGeometry(widthAndHeight, widthAndHeight), material);
 			sky.x = 0;
 			sky.y = 140;
 			sky.z = 1520;
@@ -201,7 +221,7 @@ package soccer.control
 		private function addGoal():void
 		{
 			var material:ColorMaterial = new ColorMaterial(0xFFFFFF);
-			CONFIG::WEB
+			CONFIG::HIGH_QUALITY_3D
 			{
 				material.lightPicker = lightPicker;
 			}
@@ -241,10 +261,16 @@ package soccer.control
 		private function addBanners():void
 		{
 			var material:TextureMaterial = new TextureMaterial(Cast.bitmapTexture("banner1.png"), true, false);
+			var movable:Boolean = false;
 
-			banner1 = physics.createCube(material, 512, 128, 20, 20, 10, 10, false);
-			banner1.movable = false;
-			banner1.mass = 20;
+			CONFIG::HIGH_QUALITY_3D
+			{
+				movable = true;
+			}
+
+			banner1 = physics.createCube(material, 512, 128, 15, 20, 10, 10, false);
+			banner1.movable = movable;
+			banner1.mass = 10;
 			banner1.friction = 1;
 			banner1.x = 740;
 			banner1.y = 128 * 0.5;
@@ -258,12 +284,15 @@ package soccer.control
 		{
 			var radius:Number = 12;
 			var material:TextureMaterial = new TextureMaterial(Cast.bitmapTexture("ball.png"), true, false);
-			CONFIG::WEB
+			var segments:uint = 15;
+
+			CONFIG::HIGH_QUALITY_3D
 			{
 				material.lightPicker = lightPicker;
+				segments = 30;
 			}
 
-			var sphere:RigidBody = physics.createSphere(material, radius, 15, 15, false);
+			var sphere:RigidBody = physics.createSphere(material, radius, segments, segments, false);
 			sphere.friction = 1;
 			sphere.restitution = 1;
 
@@ -280,7 +309,7 @@ package soccer.control
 
 		private function kick(name:String, angle:Number, distance:Number):void
 		{
-			// the axis in the browser version is the other way around
+			// the angle is inverted in the browser version
 			angle = -angle;
 
 			// only kick the ball if the angle is in the direction of the camera.
@@ -341,6 +370,8 @@ package soccer.control
 				}
 			}
 
+			if (banner1.y < 1) banner1.y = 1;
+
 			physics.step();
 			view.render();
 		}
@@ -349,7 +380,14 @@ package soccer.control
 		{
 			if (event.keyCode == Keyboard.SPACE)
 			{
-				kick("Local", -st.STRAIGHT, 595);
+				// kick("Local", -st.STRAIGHT, 595);
+
+				banner1.x = 740;
+				banner1.y = 128 * 0.5;
+				banner1.z = -130;
+				banner1.rotationX = 0;
+				banner1.rotationY = 10;
+				banner1.rotationZ = 0;
 			}
 		}
 

@@ -1,5 +1,6 @@
 ﻿package
 {
+	
 	import flash.display.StageQuality;
 	import soccer.model.ApplicationState;
 	import soccer.model.Locator;
@@ -48,7 +49,7 @@
 			stage.scaleMode = StageScaleMode.NO_SCALE;
 			stage.showDefaultContextMenu = false;
 			stage.quality = StageQuality.HIGH;
-
+			
 			// Add listeners
 			ct.events.add(bootStrapper, Bootstrapper.CLASSES_FRAME_COMPLETE, onClassesFrameComplete);
 			ct.events.add(bootStrapper, Bootstrapper.TOTALFRAMES_COMPLETE, onTotalFramesComplete);
@@ -60,12 +61,21 @@
 				import flash.desktop.NativeApplication;
 				import flash.system.Capabilities;
 
-				trace(Capabilities.screenResolutionX);
-				trace(Capabilities.screenResolutionY);
+				trace("Capabilities.screenResolutionX: " + Capabilities.screenResolutionX);
+				trace("Capabilities.screenResolutionY: " + Capabilities.screenResolutionY);
 
 				NativeApplication.nativeApplication.addEventListener(Event.ACTIVATE, onActivate, false, 0, true);
 				NativeApplication.nativeApplication.addEventListener(Event.DEACTIVATE, onDeactivate, false, 0, true);
 				NativeApplication.nativeApplication.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown, false, 0, true);
+			}
+			
+			CONFIG::DESKTOP {
+				import flash.display.StageDisplayState;
+				
+				stage.displayState = StageDisplayState.FULL_SCREEN_INTERACTIVE;
+				
+				trace("stage.stageWidth: " + stage.stageWidth);
+				trace("stage.stageHeight: " + stage.stageHeight);
 			}
 
 			bootStrapper.init();
