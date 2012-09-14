@@ -26,6 +26,7 @@ package soccer.control
 	import flash.geom.Vector3D;
 	import flash.text.TextField;
 	import flash.ui.Keyboard;
+	import flash.utils.setTimeout;
 
 	/**
 	 * @author Nicolas Zanotti
@@ -67,7 +68,7 @@ package soccer.control
 
 			tfPoints.x = stage.stageWidth - (tfPoints.width + 20);
 
-			CONFIG::DESKTOP
+			CONFIG::HIGH_QUALITY_3D
 			{
 				ct.events.add(stage, KeyboardEvent.KEY_DOWN, onKeyDown);
 			}
@@ -115,7 +116,8 @@ package soccer.control
 
 			CONFIG::HIGH_QUALITY_3D
 			{
-				view.antiAlias = 4;
+				view.antiAlias = 16;
+				trace('view.antiAlias: ' + (view.antiAlias));
 			}
 
 			CONFIG::DEBUG
@@ -124,8 +126,6 @@ package soccer.control
 
 				this.addChild(new AwayStats(view));
 			}
-
-			trace('view.antiAlias: ' + (view.antiAlias));
 
 			view.camera.x = 0;
 			view.camera.y = 120;
@@ -148,7 +148,11 @@ package soccer.control
 
 		private function initPhysics():void
 		{
-			JConfig.solverType = "FAST";
+			CONFIG::MOBILE
+			{
+				JConfig.solverType = "FAST";
+			}
+
 			physics = new Away3D4Physics(view, 8);
 		}
 
@@ -258,22 +262,26 @@ package soccer.control
 			physics.getMesh(goalPostTop).geometry.scaleUV(10, 1);
 		}
 
+		private function activateBanner():void
+		{
+			banner1.movable = true;
+		}
+
 		private function addBanners():void
 		{
 			var material:TextureMaterial = new TextureMaterial(Cast.bitmapTexture("banner1.png"), true, false);
-			var movable:Boolean = false;
 
 			CONFIG::HIGH_QUALITY_3D
 			{
-				movable = true;
+				setTimeout(activateBanner, 100);
 			}
 
-			banner1 = physics.createCube(material, 512, 128, 15, 20, 10, 10, false);
-			banner1.movable = movable;
+			banner1 = physics.createCube(material, 512, 128, 10, 20, 20, 20, false);
+			banner1.movable = false;
 			banner1.mass = 10;
 			banner1.friction = 1;
 			banner1.x = 740;
-			banner1.y = 128 * 0.5;
+			banner1.y = (128 * 0.5);
 			banner1.z = -130;
 			banner1.rotationX = 0;
 			banner1.rotationY = 10;
@@ -370,7 +378,7 @@ package soccer.control
 				}
 			}
 
-			if (banner1.y < 1) banner1.y = 1;
+			// if (banner1.y < 1) banner1.y = 1;
 
 			physics.step();
 			view.render();
