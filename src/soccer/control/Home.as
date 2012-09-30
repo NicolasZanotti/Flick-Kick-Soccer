@@ -8,7 +8,7 @@ package soccer.control
 	import away3d.primitives.PlaneGeometry;
 	import away3d.utils.Cast;
 
-	import jiglib.cof.JConfig;
+	
 	import jiglib.physics.RigidBody;
 	import jiglib.plugin.away3d4.Away3D4Mesh;
 	import jiglib.plugin.away3d4.Away3D4Physics;
@@ -117,7 +117,6 @@ package soccer.control
 			CONFIG::HIGH_QUALITY_3D
 			{
 				view.antiAlias = 16;
-				trace('view.antiAlias: ' + (view.antiAlias));
 			}
 
 			CONFIG::DEBUG
@@ -148,11 +147,6 @@ package soccer.control
 
 		private function initPhysics():void
 		{
-			CONFIG::MOBILE
-			{
-				JConfig.solverType = "FAST";
-			}
-
 			physics = new Away3D4Physics(view, 8);
 		}
 
@@ -271,11 +265,6 @@ package soccer.control
 		{
 			var material:TextureMaterial = new TextureMaterial(Cast.bitmapTexture("banner1.png"), true, false);
 
-			CONFIG::HIGH_QUALITY_3D
-			{
-				setTimeout(activateBanner, 100);
-			}
-
 			banner1 = physics.createCube(material, 512, 128, 10, 20, 20, 20, false);
 			banner1.movable = false;
 			banner1.mass = 10;
@@ -286,6 +275,9 @@ package soccer.control
 			banner1.rotationX = 0;
 			banner1.rotationY = 10;
 			banner1.rotationZ = 0;
+			
+			// The banner sometimes falls over if not all objects have been checked yet.
+			setTimeout(activateBanner, 100);
 		}
 
 		private function addSphere():RigidBody

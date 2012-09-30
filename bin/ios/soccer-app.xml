@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <application xmlns="http://ns.adobe.com/air/application/3.2">
     <id>flick-kick-soccer</id>
-    <versionNumber>0.93</versionNumber>
+    <versionNumber>1.0.1</versionNumber>
     <filename>Flick Kick Soccer</filename>
     <description></description>
     <!-- To localize the description, use the following format for the description element.
