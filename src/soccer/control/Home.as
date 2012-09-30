@@ -351,7 +351,7 @@ package soccer.control
 						{
 							st.currentExtraData.countedAsGoal = true;
 							st.points += 1;
-							tfPoints.text = st.points.toString() + (st.points == 1 ? " Punkt" : " Punkte");
+							tfPoints.text = st.points.toString() + (st.points == 1 ? " Point" : " Points");
 						}
 					}
 
