@@ -1,5 +1,6 @@
 package soccer.control
 {
+	import flash.display.LoaderInfo;
 	import away3d.containers.View3D;
 	import away3d.entities.Mesh;
 	import away3d.events.MouseEvent3D;
@@ -96,7 +97,8 @@ package soccer.control
 
 		private function createSocket():FlashSocket
 		{
-			return new FlashSocket("staging.mattenbach.ch:8126");
+			var socketDomain:String = (root.loaderInfo as LoaderInfo).parameters["socketDomain"];			
+			return new FlashSocket(socketDomain || "localhost");
 		}
 
 		private function onDeactivate(event:Event):void

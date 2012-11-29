@@ -63,7 +63,7 @@ function init() {
 	resize();
 
 	// Initialize socket
-	socket = io.connect('http://staging.mattenbach.ch:8126');
+	socket = io.connect('nicolas.zanotti.me:443');
 }
 
 function tick() {

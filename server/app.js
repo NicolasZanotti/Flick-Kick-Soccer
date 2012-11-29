@@ -4,8 +4,8 @@ var io = require('socket.io').listen(app);
 
 var users = {};
 
-app.listen(8126);
-console.log("listening on Port 8126");
+app.listen(443);
+console.log("listening on Port 443");
 
 app.use(express.static(__dirname + '/public'));
 
