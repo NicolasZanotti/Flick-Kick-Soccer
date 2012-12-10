@@ -5,7 +5,7 @@ Credits
 -------
 
 Programming, graphics, animation:
-Nicolas Zanotti (http://nicolas.zanotti.name)
+Nicolas Zanotti (http://nicolas.zanotti.me)
 
 Code Frameworks:
 *   Adobe Flash and Adobe AIR (http://adobe.com/)
